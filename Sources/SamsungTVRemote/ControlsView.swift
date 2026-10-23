@@ -129,24 +129,22 @@ struct ControlsView: View {
             .padding(.horizontal, 4)
             if !remote.apps.isEmpty {
                 Group {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: min(remote.apps.count, 4)), spacing: 8) {
+                    // Icons only, on one glass shelf; the name shows on hover.
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 6), spacing: 10) {
                         ForEach(remote.apps) { app in
                             Button { remote.launch(app) } label: {
-                                VStack(spacing: 7) {
-                                    AppIcon(app: app, size: 34)
-                                    Text(app.name).font(.caption.weight(.medium)).lineLimit(1).minimumScaleFactor(0.85)
-                                }
-                                .modifier(EnabledFade())
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .padding(.horizontal, 4)
-                                .glassSurface(RoundedRectangle(cornerRadius: 18, style: .continuous), interactive: true)
+                                AppIcon(app: app, size: 38)
+                                    .modifier(EnabledFade())
+                                    .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(PressStyle(highlight: false))
                             .disabled(!remote.connected)
-                            .help("Open \(app.name)")
+                            .help(app.name)
+                            .accessibilityLabel("Open \(app.name)")
                         }
                     }
+                    .padding(10)
+                    .glassSurface(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 }
             }
         }
