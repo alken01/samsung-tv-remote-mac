@@ -74,16 +74,6 @@ struct EnabledFade: ViewModifier {
     func body(content: Content) -> some View { content.opacity(enabled ? 1 : 0.35) }
 }
 
-struct GlassGroup<Content: View>: View {
-    var spacing: CGFloat = 6
-    @ViewBuilder var content: () -> Content
-    var body: some View {
-        if #available(macOS 26, *) {
-            GlassEffectContainer(spacing: spacing) { content() }
-        } else { content() }
-    }
-}
-
 /// A plain button with a soft hover wash and a small press-down, for controls drawn on top of glass.
 struct PressStyle: ButtonStyle {
     var shape = AnyShape(Circle())

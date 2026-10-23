@@ -75,6 +75,7 @@ enum SamsungProtocol {
         var parts = URLComponents()
         parts.scheme = "wss"; parts.host = host; parts.port = 8002
         parts.path = "/api/v2/channels/samsung.remote.control"
+        // The TV lists paired clients by this name; changing it would ask for Allow again.
         parts.queryItems = [URLQueryItem(name: "name", value: Data("Samsung Menu Remote".utf8).base64EncodedString())]
         if let token { parts.queryItems?.append(URLQueryItem(name: "token", value: token)) }
         return parts.url

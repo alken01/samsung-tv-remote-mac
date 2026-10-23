@@ -21,7 +21,7 @@ extension Notification.Name {
         panel.install(host)
         panel.delegate = self
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "appletvremote.gen1", accessibilityDescription: "Samsung Menu Remote")
+            button.image = NSImage(systemSymbolName: "appletvremote.gen1", accessibilityDescription: "Samsung TV Remote")
             button.target = self
             button.action = #selector(toggle)
         }

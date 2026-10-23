@@ -1,10 +1,10 @@
 // swift-tools-version: 5.9
 import PackageDescription
 let package = Package(
-    name: "SamsungMenuRemote",
+    name: "SamsungTVRemote",
     platforms: [.macOS(.v14)],
-    products: [.executable(name: "SamsungMenuRemote", targets: ["SamsungMenuRemote"])],
+    products: [.executable(name: "SamsungTVRemote", targets: ["SamsungTVRemote"])],
     targets: [
-        .executableTarget(name: "SamsungMenuRemote")
+        .executableTarget(name: "SamsungTVRemote")
     ]
 )

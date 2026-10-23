@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-@main struct SamsungMenuRemoteApp: App {
+@main struct SamsungTVRemoteApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     var body: some Scene {
         Settings { EmptyView() }
@@ -14,6 +14,7 @@ import AppKit
     private let mediaKeys = MediaKeys()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        migrateDefaults()
         panel = StatusPanel(remote: remote)
         remote.start()
         // Only while the panel is on screen; otherwise the keys keep controlling the Mac.
@@ -28,5 +29,16 @@ import AppKit
                 self?.mediaKeys.update(prompt: enabled)
             }
         }
+    }
+
+    // Carry favourites and preferences over from the app's former bundle identifier.
+    private func migrateDefaults() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "migratedFromMenuRemote"),
+              let old = UserDefaults(suiteName: "local.samsung-menu-remote") else { return }
+        for key in ["favoriteApps", "customApps", MediaKeys.defaultsKey] where defaults.object(forKey: key) == nil {
+            if let value = old.object(forKey: key) { defaults.set(value, forKey: key) }
+        }
+        defaults.set(true, forKey: "migratedFromMenuRemote")
     }
 }

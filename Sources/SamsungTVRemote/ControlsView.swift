@@ -8,10 +8,10 @@ struct ControlsView: View {
         VStack(spacing: 16) {
             if let detail = remote.detail { banner(detail) }
 
-            GlassGroup {
+            Group {
                 VStack(spacing: 14) {
                     ZStack {
-                        DirectionPad(remote: remote).disabled(!remote.connected)
+                        DirectionPad(remote: remote)
                         VStack {
                             HStack {
                                 // Power stays usable while disconnected: it wakes the TV instead.
@@ -128,12 +128,12 @@ struct ControlsView: View {
             }
             .padding(.horizontal, 4)
             if !remote.apps.isEmpty {
-                GlassGroup {
+                Group {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: min(remote.apps.count, 4)), spacing: 8) {
                         ForEach(remote.apps) { app in
                             Button { remote.launch(app) } label: {
                                 VStack(spacing: 7) {
-                                    AppIcon(app: app)
+                                    AppIcon(app: app, size: 34)
                                     Text(app.name).font(.caption.weight(.medium)).lineLimit(1).minimumScaleFactor(0.85)
                                 }
                                 .modifier(EnabledFade())
@@ -185,6 +185,7 @@ struct DirectionPad: View {
                     .shadow(color: .accentColor.opacity(0.35), radius: 10, y: 3)
             }
             .buttonStyle(PressStyle(highlight: false))
+            .disabled(!remote.connected)
             .help("Select · Return")
             .accessibilityLabel("Select")
         }
@@ -201,6 +202,7 @@ struct DirectionPad: View {
                 .frame(width: 48, height: 48)
         }
         .buttonStyle(PressStyle())
+        .disabled(!remote.connected)
         .help(label)
         .accessibilityLabel(label)
     }

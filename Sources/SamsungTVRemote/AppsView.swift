@@ -115,19 +115,6 @@ struct AppsView: View {
     }
 }
 
-/// Rounded brand-coloured tile with the app's symbol.
-struct AppIcon: View {
-    let app: TVApp
-    var size: CGFloat = 30
-    var body: some View {
-        Image(systemName: app.symbol)
-            .font(.system(size: size * 0.44, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: size, height: size)
-            .background(app.brand.gradient, in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
-    }
-}
-
 extension TVApp {
     var brand: Color {
         switch name {

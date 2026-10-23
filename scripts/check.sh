@@ -5,10 +5,10 @@ mkdir -p .local
 # XCTest is not shipped with the installed standalone Command Line Tools.
 # Compile the production protocol/session sources directly into this small runner.
 swiftc -parse-as-library \
-    Sources/SamsungMenuRemote/Protocol.swift \
-    Sources/SamsungMenuRemote/Discovery.swift \
-    Sources/SamsungMenuRemote/Storage.swift \
-    Sources/SamsungMenuRemote/Remote.swift \
-    Tests/SamsungMenuRemoteTests/Checks.swift \
+    Sources/SamsungTVRemote/Protocol.swift \
+    Sources/SamsungTVRemote/Discovery.swift \
+    Sources/SamsungTVRemote/Storage.swift \
+    Sources/SamsungTVRemote/Remote.swift \
+    Tests/SamsungTVRemoteTests/Checks.swift \
     -o .local/checks
 .local/checks

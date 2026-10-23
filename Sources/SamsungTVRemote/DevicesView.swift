@@ -10,7 +10,7 @@ struct DevicesView: View {
         VStack(alignment: .leading, spacing: 16) {
             if remote.discovered.isEmpty { empty }
             else {
-                GlassGroup {
+                Group {
                     VStack(spacing: 8) { ForEach(remote.discovered) { row($0) } }
                 }
             }
