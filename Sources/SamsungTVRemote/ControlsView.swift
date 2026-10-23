@@ -76,6 +76,12 @@ struct ControlsView: View {
         }
     }
 
+    // Up to five per row, centred; six split into two even rows of three.
+    private var appColumns: Int {
+        let count = remote.apps.count
+        return count == 6 ? 3 : max(1, min(count, 5))
+    }
+
     private func segment(_ key: TVKey, _ symbol: String, _ label: String) -> some View {
         Button { remote.send(key) } label: {
             Image(systemName: symbol)
@@ -130,12 +136,11 @@ struct ControlsView: View {
             if !remote.apps.isEmpty {
                 Group {
                     // Icons only, on one glass shelf; the name shows on hover.
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 6), spacing: 10) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(40), spacing: 18), count: appColumns), spacing: 14) {
                         ForEach(remote.apps) { app in
                             Button { remote.launch(app) } label: {
-                                AppIcon(app: app, size: 38)
+                                AppIcon(app: app, size: 40)
                                     .modifier(EnabledFade())
-                                    .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(PressStyle(highlight: false))
                             .disabled(!remote.connected)
@@ -143,7 +148,8 @@ struct ControlsView: View {
                             .accessibilityLabel("Open \(app.name)")
                         }
                     }
-                    .padding(10)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                     .glassSurface(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 }
             }

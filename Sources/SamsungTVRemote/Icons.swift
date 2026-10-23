@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Official app icons, taken from each service's App Store listing via Apple's public lookup API.
-/// Downloaded once and cached in Application Support; nothing is bundled or sent besides the store ID.
+/// Official app icons, taken from each service's App Store listing via Apple's public iTunes API.
+/// Downloaded once and cached in Application Support; only the store ID or app name is sent.
 @MainActor final class AppIcons: ObservableObject {
     static let shared = AppIcons()
     @Published private(set) var images: [String: NSImage] = [:]
@@ -27,15 +27,13 @@ import SwiftUI
 
     func load(_ app: TVApp) async {
         let key = app.name
-        guard images[key] == nil, !loading.contains(key), let listing = Self.listings[key] else { return }
+        guard images[key] == nil, !loading.contains(key) else { return }
         loading.insert(key)
         defer { loading.remove(key) }
-        let file = directory.appendingPathComponent("\(listing.id).png")
+        let slug = key.lowercased().filter { $0.isLetter || $0.isNumber }
+        let file = directory.appendingPathComponent("\(slug).png")
         if let cached = NSImage(contentsOf: file) { images[key] = cached; return }
-        guard let lookup = URL(string: "https://itunes.apple.com/lookup?id=\(listing.id)&country=\(listing.country)"),
-              let (data, _) = try? await URLSession.shared.data(from: lookup),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let artwork = (json["results"] as? [[String: Any]])?.first?["artworkUrl512"] as? String,
+        guard let artwork = await artworkURL(for: key),
               // Ask Apple's image service for a lossless 256 px rendition instead of the 512 px JPEG.
               let url = URL(string: artwork.replacingOccurrences(of: "512x512bb.jpg", with: "256x256bb.png")),
               let (bytes, response) = try? await URLSession.shared.data(from: url),
@@ -44,6 +42,33 @@ import SwiftUI
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? bytes.write(to: file, options: .atomic)
         images[key] = image
+    }
+
+    // Verified listings first; otherwise an App Store search whose top hits must carry the app's name,
+    // so an unrelated app never borrows the icon.
+    private func artworkURL(for name: String) async -> String? {
+        if let listing = Self.listings[name] {
+            return await results("https://itunes.apple.com/lookup?id=\(listing.id)&country=\(listing.country)").first?["artworkUrl512"] as? String
+        }
+        // Generic system apps would match unrelated store apps.
+        guard !["Browser", "Gallery"].contains(name) else { return nil }
+        let term = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        let region = (Locale.current.region?.identifier ?? "us").lowercased()
+        let wanted = name.lowercased()
+        for country in Set([region, "us"]) {
+            let hits = await results("https://itunes.apple.com/search?term=\(term)&entity=software&limit=5&country=\(country)")
+            if let hit = hits.first(where: { ($0["trackName"] as? String)?.lowercased().hasPrefix(wanted) == true }) {
+                return hit["artworkUrl512"] as? String
+            }
+        }
+        return nil
+    }
+
+    private func results(_ address: String) async -> [[String: Any]] {
+        guard let url = URL(string: address),
+              let (data, _) = try? await URLSession.shared.data(from: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [] }
+        return json["results"] as? [[String: Any]] ?? []
     }
 }
 

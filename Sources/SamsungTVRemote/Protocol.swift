@@ -49,6 +49,7 @@ struct TVApp: Identifiable, Codable, Equatable {
     var name: String
     var symbol: String
     // Probed against the TV; only identifiers whose metadata endpoint answers are shown.
+    // Identifiers beyond the ones verified on our TV come from https://rs.ltd/apps/remote-control-tv/custom-apps/samsung/
     // Several services changed identifiers over the years, so both generations are listed.
     static let catalog = [
         TVApp(id: "111299001912", name: "YouTube", symbol: "play.rectangle.fill"),
@@ -64,7 +65,43 @@ struct TVApp: Identifiable, Codable, Equatable {
         TVApp(id: "3202203026841", name: "Twitch", symbol: "gamecontroller.fill"),
         TVApp(id: "3201511006428", name: "Rakuten TV", symbol: "film.stack"),
         TVApp(id: "3201611010983", name: "YouTube Kids", symbol: "play.rectangle.fill"),
-        TVApp(id: "3202010022079", name: "Browser", symbol: "globe")
+        TVApp(id: "3202010022079", name: "Browser", symbol: "globe"),
+        TVApp(id: "3202004020626", name: "Amazon Alexa", symbol: "mic.fill"),
+        TVApp(id: "3201710014874", name: "Amazon Music", symbol: "music.note"),
+        TVApp(id: "3201909019175", name: "BritBox", symbol: "tv"),
+        TVApp(id: "3201905018484", name: "BritBox", symbol: "tv"),
+        TVApp(id: "3202302030097", name: "Crunchyroll", symbol: "sparkles"),
+        TVApp(id: "3201806016390", name: "DAZN", symbol: "sportscourt.fill"),
+        TVApp(id: "3201608010191", name: "Deezer", symbol: "music.note"),
+        TVApp(id: "3201803015944", name: "Discovery+", symbol: "globe.americas.fill"),
+        TVApp(id: "3202006021105", name: "Discovery+", symbol: "globe.americas.fill"),
+        TVApp(id: "3202009021709", name: "Disney+", symbol: "sparkles.tv"),
+        TVApp(id: "3202204027038", name: "Disney+", symbol: "sparkles.tv"),
+        TVApp(id: "111012010001", name: "Fandango at Home", symbol: "film"),
+        TVApp(id: "3201911019625", name: "Fox Sports", symbol: "sportscourt.fill"),
+        TVApp(id: "3201710015037", name: "Gallery", symbol: "photo.on.rectangle"),
+        TVApp(id: "3202102023078", name: "GeForce NOW", symbol: "gamecontroller.fill"),
+        TVApp(id: "3202301029760", name: "Max", symbol: "play.tv.fill"),
+        TVApp(id: "3201601007625", name: "Hulu", symbol: "play.tv.fill"),
+        TVApp(id: "org.tizen.browser", name: "Browser", symbol: "globe"),
+        TVApp(id: "3201907018784", name: "Browser", symbol: "globe"),
+        TVApp(id: "3201603008210", name: "MLB", symbol: "baseball.fill"),
+        TVApp(id: "3201710014981", name: "Paramount+", symbol: "mountain.2.fill"),
+        TVApp(id: "3202110025305", name: "Paramount+", symbol: "mountain.2.fill"),
+        TVApp(id: "3201809016952", name: "PBS Kids", symbol: "figure.and.child.holdinghands"),
+        TVApp(id: "3202006020991", name: "Peacock", symbol: "play.tv.fill"),
+        TVApp(id: "3201808016802", name: "Pluto TV", symbol: "tv"),
+        TVApp(id: "3201602007756", name: "Red Bull TV", symbol: "bolt.fill"),
+        TVApp(id: "3201707014448", name: "Sling TV", symbol: "tv"),
+        TVApp(id: "3201710015016", name: "SmartThings", symbol: "house.fill"),
+        TVApp(id: "3201910019378", name: "SmartThings", symbol: "house.fill"),
+        TVApp(id: "3202311033054", name: "SmartThings", symbol: "house.fill"),
+        TVApp(id: "3202008021577", name: "TikTok", symbol: "music.note"),
+        TVApp(id: "3201504001965", name: "Tubi", symbol: "play.tv"),
+        TVApp(id: "3202203026799", name: "Xbox", symbol: "gamecontroller.fill"),
+        TVApp(id: "3201803015836", name: "Xfinity Stream", symbol: "play.tv"),
+        TVApp(id: "3201707014489", name: "YouTube TV", symbol: "play.rectangle.fill"),
+        TVApp(id: "3201810017104", name: "ZEE5", symbol: "play.tv")
     ]
     static let defaultFavorites = ["111299001912", "3201907018807", "11101200001", "3201910019365",
                                    "3201512006785", "3201901017640", "3201606009684", "3201807016597"]
