@@ -4,7 +4,7 @@ A personal, native macOS menu bar remote for Samsung Tizen TVs. Written in Swift
 
 ## Build and use
 
-Run `scripts/build-app.sh`. The application is written to `build/Samsung TV Remote.app`. Open it and click the remote icon in the menu bar. The remote opens in a rounded panel below the icon and closes when you click elsewhere. The app remembers the TV selected during evaluation and its existing pairing. For another TV, select TVs, choose a discovered Samsung, and accept Allow on the television. If macOS asks for Local Network access, allow it.
+Run `scripts/build-app.sh`. It builds a universal (Apple silicon and Intel) app at `build/Samsung TV Remote.app` and a zip for sharing, `build/Samsung TV Remote.zip`. The icon comes from `scripts/make-icon.swift`; delete `Resources/AppIcon.icns` to regenerate it. A shared copy is ad-hoc signed and not notarized. On the receiving Mac, open it once with Control-click → Open, or use System Settings → Privacy & Security → Open Anyway. Open it and click the remote icon in the menu bar. The remote opens in a rounded panel below the icon and closes when you click elsewhere. The app remembers the TV selected during evaluation and its existing pairing. For another TV, select TVs, choose a discovered Samsung, and accept Allow on the television. If macOS asks for Local Network access, allow it.
 
 You can copy the app into Applications before enabling Open at login in Settings. It is locally ad-hoc signed, without notarization. Rebuild with the script after source changes. Nothing has been installed or configured to open at login automatically.
 

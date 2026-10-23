@@ -1,10 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-swift build -c release
+# Universal binary, so the app also runs on Intel Macs it is AirDropped to.
+ARCHS=(--arch arm64 --arch x86_64)
+swift build -c release "${ARCHS[@]}"
+[ -f Resources/AppIcon.icns ] || swift scripts/make-icon.swift
 APP='build/Samsung TV Remote.app'
+rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-BIN_DIR="$(swift build -c release --show-bin-path)"
+BIN_DIR="$(swift build -c release "${ARCHS[@]}" --show-bin-path)"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp "$BIN_DIR/SamsungTVRemote" "$APP/Contents/MacOS/SamsungTVRemote"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -14,6 +19,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleDisplayName</key><string>Samsung TV Remote</string>
 <key>CFBundleIdentifier</key><string>local.samsung-tv-remote-mac</string>
 <key>CFBundleExecutable</key><string>SamsungTVRemote</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.2.0</string>
 <key>CFBundleVersion</key><string>2</string>
@@ -26,4 +32,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 PLIST
 codesign --force --sign - "$APP"
 codesign --verify --strict "$APP"
-printf '\nBuilt: %s\n' "$PWD/$APP"
+# Zip with ditto so the bundle survives AirDrop and Finder extraction intact.
+ZIP='build/Samsung TV Remote.zip'
+rm -f "$ZIP"
+ditto -c -k --keepParent "$APP" "$ZIP"
+printf '\nBuilt: %s\nShare: %s\n' "$PWD/$APP" "$PWD/$ZIP"
