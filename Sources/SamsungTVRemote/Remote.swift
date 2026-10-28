@@ -47,6 +47,14 @@ enum ConnectionState: Equatable {
     @Published private(set) var poweredOff = false
     /// True while the TV reports an open on-screen keyboard (for example YouTube search).
     @Published private(set) var imeActive = false
+    /// TV volume 0–100 from its media renderer; nil until read, or when the TV does not offer it.
+    @Published private(set) var volume: Int?
+    @Published private(set) var muted = false
+    /// Our best guess at whether playback is paused. Samsung has no play/pause toggle key that
+    /// works in every app, so the single button alternates between the play and pause keys.
+    private var playbackPaused = false
+    /// Set while the slider is dragged, so a refresh does not pull the thumb back.
+    var adjustingVolume = false
     /// Mirrored live to the TV's open text field.
     @Published var text = "" { didSet { if text != oldValue { queueText() } } }
 
@@ -59,6 +67,7 @@ enum ConnectionState: Equatable {
     private var retry: Task<Void, Never>?
     private var appProbe: Task<Void, Never>?
     private var textTask: Task<Void, Never>?
+    private var volumeTask: Task<Void, Never>?
     private var sentText = ""
     private var textAnnounced = false
     private var generation = UUID()
@@ -159,6 +168,7 @@ enum ConnectionState: Equatable {
                         self.retryDelay = 2
                         self.startHeartbeat(socket: socket, id: id)
                         self.findApps(tv: tv, id: id)
+                        Task { await self.refreshVolume() }
                     case "ms.channel.unauthorized", "ms.channel.timeOut":
                         self.failed("The TV did not allow this connection. Use Pair again in Settings.", id: id, reconnect: false)
                         return
@@ -225,6 +235,7 @@ enum ConnectionState: Equatable {
         retry?.cancel(); retry = nil
         appProbe?.cancel(); appProbe = nil
         textTask?.cancel(); textTask = nil
+        volumeTask?.cancel(); volumeTask = nil
         imeActive = false
         sentText = ""; textAnnounced = false
         socket?.cancel(with: .goingAway, reason: nil); socket = nil
@@ -237,6 +248,11 @@ enum ConnectionState: Equatable {
         Task {
             do {
                 try await socket.send(.string(SamsungProtocol.command(key)))
+                if [.volumeUp, .volumeDown, .mute].contains(key) {
+                    // The TV applies the key a moment later; read back what it settled on.
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                    await refreshVolume()
+                }
                 if key == .powerOff, generation == id {
                     paused = true
                     stopConnection()
@@ -308,6 +324,50 @@ enum ConnectionState: Equatable {
                 }
             } catch { if generation == id { notice = "Could not open \(app.name): \(error.localizedDescription)" } }
         }
+    }
+
+    func togglePlayback() {
+        send(playbackPaused ? .play : .pause)
+        playbackPaused.toggle()
+    }
+
+    func refreshVolume() async {
+        guard connected, let host = television?.host, !adjustingVolume, volumeTask == nil else { return }
+        let id = generation
+        async let level = Self.renderer(host: host, action: "GetVolume", reading: "CurrentVolume")
+        async let mute = Self.renderer(host: host, action: "GetMute", reading: "CurrentMute")
+        let (newLevel, newMute) = await (level, mute)
+        guard generation == id, !adjustingVolume, volumeTask == nil else { return }
+        volume = newLevel.flatMap { Int($0) }.map { min(100, max(0, $0)) }
+        muted = newMute == "1"
+    }
+
+    /// Shows the new level at once and sends only the latest one while the slider moves.
+    func setVolume(_ level: Int) {
+        guard connected, let host = television?.host else { return }
+        let level = min(100, max(0, level))
+        guard level != volume else { return }
+        volume = level
+        muted = false
+        volumeTask?.cancel()
+        let id = generation
+        volumeTask = Task { [weak self] in
+            do { try await Task.sleep(nanoseconds: 60_000_000) } catch { return }
+            let sent = await Self.renderer(host: host, action: "SetVolume", arguments: [("DesiredVolume", String(level))])
+            guard let self, self.generation == id, !Task.isCancelled else { return }
+            self.volumeTask = nil
+            if sent == nil { self.notice = "The TV did not accept the volume change." }
+        }
+    }
+
+    /// Runs a RenderingControl action; returns the `reading` value, or "" when there is none to read.
+    nonisolated private static func renderer(host: String, action: String, arguments: [(String, String)] = [],
+                                             reading: String? = nil) async -> String? {
+        guard let request = RenderingControl.request(host: host, action: action, arguments: arguments),
+              let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        guard let reading else { return "" }
+        return RenderingControl.value(reading, in: String(decoding: data, as: UTF8.self))
     }
 
     private func findApps(tv: Television, id: UUID) {

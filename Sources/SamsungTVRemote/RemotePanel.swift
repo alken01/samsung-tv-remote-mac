@@ -17,7 +17,7 @@ struct RemotePanel: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Design.Space.l) {
             header
             Group {
                 switch screen {
@@ -31,8 +31,8 @@ struct RemotePanel: View {
             .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
             if let notice = remote.notice { noticeView(notice) }
         }
-        .padding(18)
-        .frame(width: 312)
+        .padding(Design.Space.l)
+        .frame(width: Design.panelWidth)
         .fixedSize(horizontal: false, vertical: true)
         // Pin content to the top while the panel animates to a new height.
         .frame(maxHeight: .infinity, alignment: .top)
@@ -56,66 +56,44 @@ struct RemotePanel: View {
     // MARK: Header
 
     private var header: some View {
-        HStack(spacing: 12) {
-            Image(systemName: headerSymbol)
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 40, height: 40)
-                .glassSurface(Circle())
-                .contentTransition(.symbolEffect(.replace))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: Design.Space.m) {
+            if let back = backAction {
+                GlassIconButton(symbol: "chevron.left", help: "Back", size: Design.Control.small, action: back)
+            }
+            VStack(alignment: .leading, spacing: 2) {
                 Text(headerTitle)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Font.title)
                     .lineLimit(1)
                 if screen == .remote || screen == .keyboard { status }
-                else {
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
-                }
             }
-            Spacer(minLength: 4)
+            Spacer(minLength: Design.Space.xs)
             switch screen {
             case .remote, .keyboard:
-                GlassIconButton(symbol: "list.bullet", help: "Choose TV", size: 30) {
-                    typing = false; remote.showDevices = true
-                    Task { await remote.scan() }
-                }
-                GlassIconButton(symbol: "gearshape", help: "Settings", size: 30) {
+                GlassIconButton(symbol: "gearshape", help: "Settings", size: Design.Control.small) {
                     typing = false; remote.showSettings = true
                 }
             case .devices:
                 if remote.scanning {
-                    ProgressView().controlSize(.small).frame(width: 30, height: 30)
+                    ProgressView().controlSize(.small).frame(width: Design.Control.small, height: Design.Control.small)
                 } else {
-                    GlassIconButton(symbol: "arrow.clockwise", help: "Scan again", size: 30) {
+                    GlassIconButton(symbol: "arrow.clockwise", help: "Scan again", size: Design.Control.small) {
                         Task { await remote.scan() }
                     }
                 }
-                if remote.television != nil {
-                    GlassIconButton(symbol: "xmark", help: "Back to remote", size: 30) { remote.showDevices = false }
-                }
-            case .settings:
-                GlassIconButton(symbol: "xmark", help: "Close settings", size: 30) { remote.showSettings = false }
-            case .apps:
-                GlassIconButton(symbol: "xmark", help: "Back to remote", size: 30) { remote.showApps = false }
+            case .settings, .apps:
+                EmptyView()
             }
         }
+        .frame(minHeight: Design.Control.large)
     }
 
-    private var headerSymbol: String {
+    // Subscreens go back with a chevron on the left; the remote itself has nowhere to go back to.
+    private var backAction: (() -> Void)? {
         switch screen {
-        case .settings: return "gearshape"
-        case .devices: return "dot.radiowaves.left.and.right"
-        case .apps: return "square.grid.2x2"
-        case .remote, .keyboard: return "tv"
-        }
-    }
-
-    private var subtitle: String {
-        switch screen {
-        case .settings: return "Preferences and pairing"
-        case .apps: return "Choose what the remote shows"
-        default: return "On your local network"
+        case .remote, .keyboard: return nil
+        case .devices: return remote.television == nil ? nil : { remote.showDevices = false }
+        case .settings: return { remote.showSettings = false }
+        case .apps: return { remote.showApps = false }
         }
     }
 
@@ -137,7 +115,7 @@ struct RemotePanel: View {
                 .opacity(remote.busy ? 0.5 : 1)
                 .animation(remote.busy && !reduceMotion ? .easeInOut(duration: 0.8).repeatForever() : .default, value: remote.busy)
             Text(remote.poweredOff && !remote.connected && !remote.busy ? "TV off" : remote.state.title)
-                .font(.caption).foregroundStyle(.secondary)
+                .font(Design.Font.detail).foregroundStyle(.secondary)
                 .contentTransition(.opacity)
         }
     }
@@ -155,15 +133,15 @@ struct RemotePanel: View {
     private func noticeView(_ notice: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "info.circle.fill").foregroundStyle(.secondary)
-            Text(notice).font(.caption).fixedSize(horizontal: false, vertical: true)
+            Text(notice).font(Design.Font.detail).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             Button { remote.notice = nil } label: {
                 Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).frame(width: 18, height: 18)
             }
             .buttonStyle(PressStyle()).foregroundStyle(.secondary).help("Dismiss")
         }
-        .padding(12)
-        .glassSurface(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(Design.Space.m)
+        .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .task(id: notice) {
             try? await Task.sleep(nanoseconds: 7_000_000_000)

@@ -84,7 +84,7 @@ final class RemoteWindow: NSPanel {
     private(set) var host: NSView?
 
     init() {
-        super.init(contentRect: NSRect(x: 0, y: 0, width: 312, height: 400),
+        super.init(contentRect: NSRect(x: 0, y: 0, width: Design.panelWidth, height: 400),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         isOpaque = false
         backgroundColor = .clear

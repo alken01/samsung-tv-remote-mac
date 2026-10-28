@@ -16,6 +16,7 @@ struct CheckFailure: Error, CustomStringConvertible {
             try pairingURL()
             try command()
             try text()
+            try volume()
             try discovery()
             try wake()
             if let host = ProcessInfo.processInfo.environment["SAMSUNG_TEST_HOST"] {
@@ -46,6 +47,17 @@ struct CheckFailure: Error, CustomStringConvertible {
         try require(Data(base64Encoded: name) == Data("Samsung Menu Remote".utf8), "Pairing prompt must identify our app")
         try require(SamsungProtocol.socketURL(host: "192.168.1.20", token: nil)?.absoluteString.contains("token=") == false, "First pairing must omit token")
         print("PASS pairing URL and credential escaping")
+    }
+
+    static func volume() throws {
+        let request = RenderingControl.request(host: "192.168.1.20", action: "SetVolume", arguments: [("DesiredVolume", "13")])
+        try require(request?.url?.absoluteString == "http://192.168.1.20:9197/upnp/control/RenderingControl1", "Wrong renderer control URL")
+        try require(request?.value(forHTTPHeaderField: "SOAPACTION") == "\"urn:schemas-upnp-org:service:RenderingControl:1#SetVolume\"", "Wrong SOAP action header")
+        let body = request?.httpBody.map { String(decoding: $0, as: UTF8.self) } ?? ""
+        try require(body.contains("<u:SetVolume xmlns:u=\"urn:schemas-upnp-org:service:RenderingControl:1\"><InstanceID>0</InstanceID><Channel>Master</Channel><DesiredVolume>13</DesiredVolume></u:SetVolume>"), "Wrong SetVolume body")
+        try require(RenderingControl.value("CurrentVolume", in: "<s:Body><u:GetVolumeResponse><CurrentVolume>13</CurrentVolume></u:GetVolumeResponse>") == "13", "Volume must parse from the response")
+        try require(RenderingControl.value("CurrentMute", in: "<x/>") == nil, "Missing values must be nil")
+        print("PASS renderer volume request and response")
     }
 
     static func command() throws {

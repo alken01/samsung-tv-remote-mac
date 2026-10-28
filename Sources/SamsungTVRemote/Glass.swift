@@ -48,9 +48,9 @@ struct CapsuleStyle: ButtonStyle {
         var body: some View {
             let label = configuration.label
                 .labelStyle(.titleAndIcon)
-                .font(.system(size: 13, weight: .semibold))
-                .padding(.horizontal, 16)
-                .frame(minHeight: 36)
+                .font(Design.Font.button)
+                .padding(.horizontal, Design.Space.l)
+                .frame(minHeight: Design.Control.regular)
                 .contentShape(Capsule())
             Group {
                 if prominent {
@@ -78,15 +78,17 @@ struct EnabledFade: ViewModifier {
 struct PressStyle: ButtonStyle {
     var shape = AnyShape(Circle())
     var highlight = true
+    var pressScale: CGFloat = 0.92
 
     func makeBody(configuration: Configuration) -> some View {
-        PressBody(configuration: configuration, shape: shape, highlight: highlight)
+        PressBody(configuration: configuration, shape: shape, highlight: highlight, pressScale: pressScale)
     }
 
     private struct PressBody: View {
         let configuration: ButtonStyleConfiguration
         let shape: AnyShape
         let highlight: Bool
+        let pressScale: CGFloat
         @Environment(\.isEnabled) private var enabled
         @NativeState private var hovering = false
 
@@ -99,7 +101,7 @@ struct PressStyle: ButtonStyle {
                     }
                 }
                 .opacity(enabled ? 1 : 0.35)
-                .scaleEffect(configuration.isPressed ? 0.92 : 1)
+                .scaleEffect(configuration.isPressed ? pressScale : 1)
                 .animation(.snappy(duration: 0.18), value: configuration.isPressed)
                 .animation(.easeOut(duration: 0.15), value: hovering)
                 .onHover { hovering = enabled && $0 }
@@ -111,7 +113,7 @@ struct PressStyle: ButtonStyle {
 struct GlassIconButton: View {
     let symbol: String
     let help: String
-    var size: CGFloat = 40
+    var size: CGFloat = Design.Control.large
     var color: Color? = nil
     let action: () -> Void
     @Environment(\.isEnabled) private var enabled
@@ -134,12 +136,12 @@ struct GlassIconButton: View {
 
 /// Grouped content on a rounded glass card.
 struct GlassCard<Content: View>: View {
-    var padding: CGFloat = 14
+    var padding: CGFloat = Design.Space.l
     @ViewBuilder var content: () -> Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 12, content: content)
+        VStack(alignment: .leading, spacing: Design.Space.m, content: content)
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassSurface(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
     }
 }

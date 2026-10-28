@@ -7,7 +7,7 @@ struct KeyboardView: View {
     var close: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: Design.Space.m) {
             HStack {
                 Button(action: close) {
                     Label("Remote", systemImage: "chevron.left")
@@ -21,13 +21,13 @@ struct KeyboardView: View {
                 liveBadge
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: Design.Space.s) {
                 Image(systemName: "keyboard")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.secondary)
                 TextField("Type on your TV", text: $remote.text)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 17))
+                    .font(.system(size: 15))
                     .focused(focus)
                     .onSubmit(submit)
                     .onKeyPress(.escape) { close(); return .handled }
@@ -41,11 +41,11 @@ struct KeyboardView: View {
                     .transition(.opacity)
                 }
             }
-            .padding(.horizontal, 16)
-            .frame(height: 52)
-            .glassSurface(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.horizontal, Design.Space.l)
+            .frame(height: 44)
+            .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous)
                     .strokeBorder(Color.accentColor.opacity(focus.wrappedValue ? 0.55 : 0), lineWidth: 1)
             }
             .animation(.easeOut(duration: 0.15), value: focus.wrappedValue)
@@ -60,9 +60,9 @@ struct KeyboardView: View {
             .help("Confirm on the TV · Return")
 
             Text(remote.imeActive
-                 ? "Text appears on the TV as you type. Return confirms, Esc goes back to the remote."
-                 : "Select any text field on the TV and type here. Arrow keys move on the TV, Return selects.")
-                .font(.caption)
+                 ? "Return confirms · Esc goes back"
+                 : "Select a text field on the TV to start")
+                .font(Design.Font.detail)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -88,7 +88,7 @@ struct KeyboardView: View {
                 .frame(width: 6, height: 6)
                 .shadow(color: .green.opacity(remote.imeActive ? 0.8 : 0), radius: 3)
             Text(remote.imeActive ? "TV keyboard open" : "No text field on TV")
-                .font(.caption.weight(.medium))
+                .font(Design.Font.detail.weight(.medium))
                 .foregroundStyle(remote.imeActive ? .primary : .secondary)
         }
         .padding(.horizontal, 10)

@@ -1,39 +1,49 @@
 # Samsung TV Remote for Mac
 
-A personal, native macOS menu bar remote for Samsung Tizen TVs. Written in SwiftUI with no third-party dependencies. Uses Liquid Glass surfaces (`glassEffect`, `GlassEffectContainer` and the glass button styles) on macOS 26 and later, with material fallbacks on macOS 14 and 15. No web view, account or analytics. The only internet request fetches app icons from Apple; everything else stays on the local network.
+A menu bar remote for Samsung Tizen TVs. Native SwiftUI, no dependencies, no account. It talks to the TV over your local network. The only internet request fetches app icons from Apple.
 
-## Build and use
+<img src="docs/remote.png" width="288" alt="The remote panel with direction pad, volume slider and playback controls">
 
-Run `scripts/build-app.sh`. It builds a universal (Apple silicon and Intel) app at `build/Samsung TV Remote.app` and a zip for sharing, `build/Samsung TV Remote.zip`. The icon comes from `scripts/make-icon.swift`; delete `Resources/AppIcon.icns` to regenerate it. A shared copy is ad-hoc signed and not notarized. On the receiving Mac, open it once with Control-click → Open, or use System Settings → Privacy & Security → Open Anyway. Open it and click the remote icon in the menu bar. The remote opens in a rounded panel below the icon and closes when you click elsewhere. The app remembers the TV selected during evaluation and its existing pairing. For another TV, select TVs, choose a discovered Samsung, and accept Allow on the television. If macOS asks for Local Network access, allow it.
+## What it does
 
-You can copy the app into Applications before enabling Open at login in Settings. It is locally ad-hoc signed, without notarization. Rebuild with the script after source changes. Nothing has been installed or configured to open at login automatically.
+- Direction pad, OK, Back, Home, Inputs, TV menu and power. Power wakes the TV with Wake-on-LAN when it is off.
+- A volume slider that shows the TV's real level, 0 to 100.
+- One play/pause button, plus rewind and fast forward.
+- Typing on the TV. When the TV opens a text field, the remote switches to a keyboard and mirrors what you type.
+- Favourite apps as icons. Choose and order them in Settings.
 
-While the remote panel is open and the TV is connected, the Mac's volume up, volume down and mute keys control the TV. Otherwise they control the Mac as usual. This uses an event tap and needs Accessibility access (Settings → Allow…). The app is ad-hoc signed, so macOS treats every rebuild as a new app and the Accessibility entry has to be re-enabled after rebuilding. Turn the behaviour off with Mac volume keys control TV in Settings.
+While the panel is open, the arrow keys move, Return is OK, Esc or Delete goes back, and + and − change the volume. Any other letter starts typing on the TV.
 
-While the remote panel is open, use the arrow keys, Return (OK), Esc or Delete (Back) and +/− (volume). Any other printable key opens the keyboard and starts typing on the TV.
+## Install
 
-Text input mirrors what you type to the TV while you type. When the TV opens its on-screen keyboard, in any app or system text field, it sends `ms.remote.imeStart`. The panel then switches to the keyboard automatically and shows "TV keyboard open". Each edit is sent as the whole field contents through `SendInputString`, preceded once per session by the `custom.remote.textReceived` broadcast that some models require. Return sends `SendInputEnd` to confirm the text; with nothing typed it acts as OK. Up and down always move on the TV, and left and right do too while the field is empty, so you can navigate and type without leaving the keyboard. Esc returns to the remote. The keyboard closes when the TV reports `ms.remote.imeEnd`. None of this is specific to one app: it targets whichever TV text field is focused. Playback controls are separate Play and Pause buttons because toggle-key behavior varies between models and apps.
+```sh
+scripts/build-app.sh
+```
 
-## Verified on this TV
+This builds `build/Samsung TV Remote.app` for Apple silicon and Intel, plus a zip to share. Copy the app to Applications and open it. Click the remote icon in the menu bar, pick your TV and choose Allow on the TV. Allow Local Network access if macOS asks.
 
-On 23 October 2026, local discovery identified a 75-inch QLED, model `QE75Q74DATXXN`. Its HTTP and HTTPS device APIs responded. A small Swift probe paired after the TV owner selected Allow, reconnected with its saved token, and completed WebSocket pings. The owner confirmed that the volume changed after remote volume commands. The Info command had no visible effect in the current TV app.
+The app is ad-hoc signed and not notarized. On another Mac, open it the first time with Control-click → Open.
 
-The installed-app metadata endpoints responded for YouTube, Disney+ and Spotify. The tested Netflix and Prime Video app identifiers returned 404. The interface only shows catalog entries whose metadata endpoint responds successfully. This is a small catalog, not a complete installed-app inventory. This TV does not answer the `ed.installedApp.get` request, so the app list comes from a catalog of known Tizen app IDs that is checked against the TV. A second check on 23 October 2026 also found Netflix (`3201907018807`), Prime Video (`3201910019365`), Apple TV, Apple Music, Plex, Twitch, Rakuten TV and Browser. Use Edit beside Apps, or Favorite apps in Settings, to choose and order the apps on the remote and to add any other app ID the TV recognises. Favourites are stored in the app's user defaults. The catalog holds about 50 identifiers: the ones verified here plus the list published at [rs.ltd](https://rs.ltd/apps/remote-control-tv/custom-apps/samsung/). On 23 October 2026 this TV also answered for DAZN and SmartThings. The remote shows favourites as icons only, with the name on hover. Each icon is the service's official App Store icon. For checked services the app looks it up by store ID; for others it searches the App Store by name and only uses a result whose title starts with that name. Browser and Gallery are never searched. Icons are fetched once from Apple's public iTunes API and cached in `~/Library/Application Support/SamsungMenuRemote/Icons`. No logos are stored in this repository. Apps without a listing, such as Browser and custom IDs, keep a brand-coloured symbol.
+## How it works
 
-Power-off now sends `KEY_POWER` because the TV did not respond to `KEY_POWEROFF`. While the TV is off, the same power button sends Wake-on-LAN. Power-off, Wake-on-LAN, input switching, navigation, app launching, playback, typing and login registration still need functional checks in the finished UI. A successful socket write is not proof that the TV performed a command. Wake-on-LAN requires the TV to retain network connectivity in standby, typically via Power On with Mobile. No power cycle was performed during evaluation.
+The remote uses the TV's WebSocket API on port 8002. It accepts Samsung's self-signed certificate only for the selected TV. The pairing token lives in `~/Library/Application Support/SamsungMenuRemote/credentials.json` with mode 600, outside the repository.
 
-## Implementation and reuse review
+The WebSocket API has no absolute volume, so the slider uses the TV's UPnP RenderingControl service on port 9197. TVs without it get − / mute / + buttons instead.
 
-Inspected [devasheeshG/universal-tv-remote-macos](https://github.com/devasheeshG/universal-tv-remote-macos) at commit `f7e651b89f6a31f377291d95c41a1590de26de79`. Useful reference areas are the Samsung WebSocket driver, native MenuBarExtra setup, command vocabulary and app bundling. The repository explicitly marks Samsung hardware support as unverified. Its README declares MIT, but the inspected checkout has no standalone root license file and GitHub's license endpoint returned 404. This project uses an independently written implementation; no source or artwork was copied from that repository.
+There is no brightness slider. The test TV rejects brightness over UPnP, and I found no local or SmartThings API for it.
 
-The upstream Samsung discovery target `urn:samsung.com:device:RemoteControlReceiver:1` received no reply from this TV in our test. A broader `ssdp:all` query did find the TV's DIAL, screen-sharing and MediaRenderer advertisements. Our scanner searches broadly across physical local IPv4 interfaces and validates responders using the Samsung Tizen device API. Manual IPv4 or hostname entry is also available.
+Samsung has no play/pause key that works in every app. The single button alternates between pause and play, so after pausing with the TV's own remote the first click may repeat the command.
 
-Samsung's local protocol is also documented by [samsung-tv-ws-api](https://github.com/xchwarze/samsung-tv-ws-api). The native client connects to the selected TV on WSS port 8002, handles its Allow prompt and pairing token, and sends JSON remote commands. Samsung's self-signed TLS certificate is accepted only for that selected host and port. The session uses generation identifiers to discard stale callbacks, a pairing deadline, heartbeat pings and capped reconnect delays. Background activity does not send key commands or wake requests.
+## Tested on
 
-The app was previously called Samsung Menu Remote. It still introduces itself to the TV under that name, and keeps its data in the `SamsungMenuRemote` folder, so existing pairings keep working. Favourites carry over from the old bundle identifier on first launch.
+A 2024 QLED, `QE75Q74DATXXN`, in October 2026. Pairing, reconnecting, volume and reading the volume work. Power, inputs, app launching and typing still need a full manual check. This TV does not list its installed apps, so the app checks a catalog of about 50 known app IDs against it. You can add any other app ID in Settings.
 
-Pairing credentials live outside the repository in `~/Library/Application Support/SamsungMenuRemote/credentials.json`, inside a directory with mode 700 and files with mode 600. The evaluation token is excluded from source control. Credentials use a protected local file in this personal build, not the macOS Keychain.
+## Development
 
-## Validation
+```sh
+scripts/check.sh
+```
 
-Run `scripts/check.sh` for protocol, device decoding, SSDP parsing and Wake-on-LAN packet tests. Set `SAMSUNG_TEST_HOST` to the saved TV's current IP when running that script to additionally verify read-only discovery, metadata, a heartbeat interval and authenticated connection/reconnection using the production client. This runner compiles the production sources directly because the installed standalone Apple Command Line Tools do not include XCTest. Hardware tests do not send remote key commands. All seven check groups passed against the real TV on 23 October 2026, including authenticated production-session reuse, a full heartbeat interval and reconnection. Debug and release builds succeeded. The installed Command Line Tools emit two linker warnings about absent developer-library search paths; these did not prevent compilation or signature validation. The build script creates and verifies the application's local code signature. UI appearance and interaction require opening the packaged app on the Mac.
+This runs the protocol, discovery, volume and Wake-on-LAN checks. Set `SAMSUNG_TEST_HOST` to the TV's IP to also run read-only checks against a real TV. They never send remote keys. Shared sizes, spacing and type live in `Sources/SamsungTVRemote/Design.swift`.
+
+Protocol references are [samsung-tv-ws-api](https://github.com/xchwarze/samsung-tv-ws-api) and [universal-tv-remote-macos](https://github.com/devasheeshG/universal-tv-remote-macos). This code is written independently; nothing was copied from either.

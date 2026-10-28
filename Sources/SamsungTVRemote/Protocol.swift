@@ -157,3 +157,33 @@ enum SamsungProtocol {
         return URL(string: value)?.host
     }
 }
+
+/// Absolute volume and mute through the TV's UPnP media renderer, which the WebSocket remote lacks.
+/// Verified on QE75Q74DATXXN: the renderer at :9197/dmr offers Get/SetVolume and Get/SetMute, not brightness.
+enum RenderingControl {
+    static let service = "urn:schemas-upnp-org:service:RenderingControl:1"
+
+    static func request(host: String, action: String, arguments: [(String, String)] = []) -> URLRequest? {
+        guard let url = URL(string: "http://\(host):9197/upnp/control/RenderingControl1") else { return nil }
+        var request = URLRequest(url: url, timeoutInterval: 3)
+        request.httpMethod = "POST"
+        request.setValue("text/xml; charset=\"utf-8\"", forHTTPHeaderField: "Content-Type")
+        request.setValue("\"\(service)#\(action)\"", forHTTPHeaderField: "SOAPACTION")
+        request.httpBody = Data(envelope(action: action, arguments: arguments).utf8)
+        return request
+    }
+
+    static func envelope(action: String, arguments: [(String, String)]) -> String {
+        let fields = ([("InstanceID", "0"), ("Channel", "Master")] + arguments).map { "<\($0)>\($1)</\($0)>" }.joined()
+        return "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+            + "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+            + "<s:Body><u:\(action) xmlns:u=\"\(service)\">\(fields)</u:\(action)></s:Body></s:Envelope>"
+    }
+
+    /// The text of the first `<tag>` in a SOAP response.
+    static func value(_ tag: String, in xml: String) -> String? {
+        guard let start = xml.range(of: "<\(tag)>"), let end = xml.range(of: "</\(tag)>", range: start.upperBound..<xml.endIndex)
+        else { return nil }
+        return String(xml[start.upperBound..<end.lowerBound])
+    }
+}

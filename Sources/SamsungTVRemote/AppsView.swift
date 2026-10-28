@@ -8,15 +8,15 @@ struct AppsView: View {
     private var others: [TVApp] { remote.available.filter { !remote.favoriteIDs.contains($0.id) } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Design.Space.l) {
             if remote.available.isEmpty {
                 GlassCard {
                     Text(remote.connected ? "Looking for apps on your TV…" : "Connect to your TV to see its apps.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(Design.Font.body).foregroundStyle(.secondary)
                 }
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: Design.Space.l) {
                         section("On the remote", empty: "Star an app below to add it.") {
                             ForEach(Array(remote.apps.enumerated()), id: \.element.id) { index, app in
                                 row(app, favorite: true, first: index == 0, last: index == remote.apps.count - 1)
@@ -33,17 +33,15 @@ struct AppsView: View {
                 .frame(maxHeight: 430)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Add app by ID")
-                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    .padding(.leading, 4)
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: Design.Space.s) {
+                SectionLabel(title: "Add app by ID")
+                HStack(spacing: Design.Space.s) {
                     TextField("Tizen app ID", text: $appID)
                         .textFieldStyle(.plain)
                         .font(.system(size: 13).monospacedDigit())
                         .onSubmit(add)
-                        .padding(.horizontal, 14)
-                        .frame(height: 36)
+                        .padding(.horizontal, Design.Space.l)
+                        .frame(height: Design.Control.regular)
                         .glassSurface(Capsule())
                     Button(action: add) {
                         if adding { ProgressView().controlSize(.small) } else { Text("Add") }
@@ -56,27 +54,24 @@ struct AppsView: View {
         }
     }
 
-    private func section<Rows: View>(_ title: String, empty: String, @ViewBuilder rows: () -> Rows) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                .padding(.leading, 4)
-            VStack(spacing: 2) {
+    private func section<Rows: View>(_ title: String, empty: String, @ViewBuilder rows: @escaping () -> Rows) -> some View {
+        VStack(alignment: .leading, spacing: Design.Space.s) {
+            SectionLabel(title: title)
+            ListCard {
                 if title == "On the remote" && remote.apps.isEmpty {
-                    Text(empty).font(.caption).foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading).padding(10)
+                    Text(empty).font(Design.Font.detail).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: Design.rowHeight, alignment: .leading)
+                        .padding(.horizontal, Design.Space.s)
                 }
                 rows()
             }
-            .padding(4)
-            .glassSurface(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
     }
 
     private func row(_ app: TVApp, favorite: Bool, first: Bool, last: Bool) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Design.Space.m) {
             AppIcon(app: app, size: 26)
-            Text(app.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
+            Text(app.name).font(Design.Font.body).lineLimit(1)
             Spacer(minLength: 0)
             if favorite {
                 small("chevron.up", "Move up") { remote.moveFavorite(app, by: -1) }.disabled(first)
@@ -88,8 +83,8 @@ struct AppsView: View {
             small(favorite ? "star.fill" : "star", favorite ? "Remove from remote" : "Add to remote",
                   color: favorite ? .yellow : nil) { remote.toggleFavorite(app) }
         }
-        .padding(.leading, 8).padding(.trailing, 4)
-        .frame(height: 40)
+        .padding(.leading, Design.Space.s).padding(.trailing, Design.Space.xs)
+        .frame(height: Design.rowHeight)
     }
 
     private func small(_ symbol: String, _ help: String, color: Color? = nil, action: @escaping () -> Void) -> some View {
@@ -97,7 +92,7 @@ struct AppsView: View {
             Image(systemName: symbol)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(color.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
-                .frame(width: 28, height: 28)
+                .frame(width: Design.Control.small, height: Design.Control.small)
         }
         .buttonStyle(PressStyle())
         .help(help)
