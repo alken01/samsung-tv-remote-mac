@@ -7,6 +7,7 @@ import AppKit
         Settings {
             InfoWindow(remote: delegate.remote) { delegate.openRemote() }
         }
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
     }
 }

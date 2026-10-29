@@ -13,6 +13,8 @@ struct CheckFailure: Error, CustomStringConvertible {
     @MainActor static func main() async {
         do {
             try metadata()
+            try powerState()
+            try await standbyConnection()
             try pairingURL()
             try command()
             try text()
@@ -35,6 +37,64 @@ struct CheckFailure: Error, CustomStringConvertible {
         catch { rejected = true }
         try require(rejected, "Other manufacturers must not be presented as Samsung TVs")
         print("PASS device metadata and manufacturer validation")
+    }
+
+    static func powerState() throws {
+        for (state, standby) in [("on", false), ("standby", true), ("STANDBY", true), ("unknown", false)] {
+            let data = Data("{\"device\":{\"type\":\"Samsung SmartTV\",\"OS\":\"Tizen\",\"PowerState\":\"\(state)\"}}".utf8)
+            let tv = try Television.decode(data, host: "192.168.1.20")
+            try require(tv.inStandby == standby, "Only an explicit standby response should mark the TV off: \(state)")
+        }
+        let legacy = try Television.decode(Data(#"{"device":{"type":"Samsung SmartTV","OS":"Tizen"}}"#.utf8), host: "192.168.1.20")
+        try require(legacy.powerState == nil && !legacy.inStandby, "Missing power state must preserve older TV support")
+        let saved = Data(#"{"id":"tv","name":"TV","model":"QLED","host":"192.168.1.20"}"#.utf8)
+        let restored = try JSONDecoder().decode(Television.self, from: saved)
+        try require(restored.powerState == nil, "Existing saved TVs must still load without a power state")
+        print("PASS standby, on, unknown and legacy power states")
+    }
+
+    @MainActor static func standbyConnection() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storage = RemoteStorage(directory: directory)
+        let tv = Television(id: "standby-test", name: "TV", model: "QLED", host: "192.0.2.1", powerState: "standby")
+        try storage.saveTV(tv)
+        try storage.saveToken("test-token", for: tv)
+        let remote = Remote(storage: storage, inspect: { _ in tv })
+        defer { remote.pause() }
+        for _ in 0..<2 {
+            remote.connect()
+            for _ in 0..<100 {
+                if !remote.busy { break }
+                try await Task.sleep(nanoseconds: 10_000_000)
+            }
+            try require(remote.poweredOff && !remote.connected && !remote.busy, "Reconnect to a standby TV must leave the UI off, not connected")
+            try require(remote.volume == nil, "A standby TV must not retain a stale volume")
+        }
+        remote.connect(waking: true)
+        try await Task.sleep(nanoseconds: 20_000_000)
+        try require(remote.state == .connecting, "Wake must allow time for a standby TV to boot")
+        remote.pause()
+
+        // A response from a cancelled connection must not reopen its socket.
+        var reply: CheckedContinuation<Television?, Never>?
+        let cancelled = Remote(storage: storage, inspect: { _ in
+            await withCheckedContinuation { reply = $0 }
+        })
+        defer { cancelled.pause() }
+        cancelled.connect()
+        for _ in 0..<100 {
+            if reply != nil { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        guard let reply else { throw CheckFailure(description: "Power check did not start") }
+        cancelled.pause()
+        var on = tv
+        on.powerState = "on"
+        reply.resume(returning: on)
+        try await Task.sleep(nanoseconds: 20_000_000)
+        try require(cancelled.state == .offline("Disconnected. Select Reconnect when you need the remote."), "A stale power check must not restart a disconnected session")
+        print("PASS standby reconnect, wake grace period and cancelled power checks")
     }
 
     static func pairingURL() throws {

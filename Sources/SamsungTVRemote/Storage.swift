@@ -4,8 +4,8 @@ import Foundation
 // Nothing is synced or included in the application bundle.
 struct RemoteStorage {
     let directory: URL
-    init() {
-        directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    init(directory: URL? = nil) {
+        self.directory = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("SamsungMenuRemote", isDirectory: true)
     }
     private func prepare() throws {

@@ -43,7 +43,7 @@ enum ConnectionState: Equatable {
     @Published var showSettings = false
     @Published var showKeyboard = false
     @Published var showApps = false
-    /// Set after the power key, so the UI can offer power-on instead of an error.
+    /// Set after the power key or a confirmed standby response from the TV.
     @Published private(set) var poweredOff = false
     /// True while the TV reports an open on-screen keyboard (for example YouTube search).
     @Published private(set) var imeActive = false
@@ -58,10 +58,12 @@ enum ConnectionState: Equatable {
     /// Mirrored live to the TV's open text field.
     @Published var text = "" { didSet { if text != oldValue { queueText() } } }
 
-    private let storage = RemoteStorage()
+    private let storage: RemoteStorage
+    private let inspect: (String) async -> Television?
     private var session: URLSession?
     private var socket: URLSessionWebSocketTask?
     private var receiver: Task<Void, Never>?
+    private var powerCheck: Task<Void, Never>?
     private var heartbeat: Task<Void, Never>?
     private var deadline: Task<Void, Never>?
     private var retry: Task<Void, Never>?
@@ -85,7 +87,10 @@ enum ConnectionState: Equatable {
         return nil
     }
 
-    init() {
+    init(storage: RemoteStorage = RemoteStorage(),
+         inspect: @escaping (String) async -> Television? = { try? await TVDiscovery.inspect(host: $0) }) {
+        self.storage = storage
+        self.inspect = inspect
         television = storage.loadTV()
     }
 
@@ -121,7 +126,7 @@ enum ConnectionState: Equatable {
         connect()
     }
 
-    func connect() {
+    func connect(waking: Bool = false) {
         guard let tv = television else { showDevices = true; return }
         stopConnection()
         paused = false
@@ -132,6 +137,30 @@ enum ConnectionState: Equatable {
         }
         state = token == nil ? .pairing : .connecting
         let id = generation
+        let inspect = self.inspect
+        powerCheck = Task { [weak self] in
+            // A standby TV can accept WebSocket connections. Read its power state first.
+            let wakeDeadline = Date().addingTimeInterval(30)
+            while !Task.isCancelled {
+                let status = await inspect(tv.host)
+                guard let self, self.generation == id, !Task.isCancelled else { return }
+                if status?.inStandby == true {
+                    if waking && Date() < wakeDeadline {
+                        do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
+                        continue
+                    }
+                    self.markPoweredOff()
+                    return
+                }
+                // Older TVs may omit PowerState; preserve their WebSocket fallback.
+                self.powerCheck = nil
+                self.openSocket(tv: tv, url: url, token: token, id: id)
+                return
+            }
+        }
+    }
+
+    private func openSocket(tv: Television, url: URL, token: String?, id: UUID) {
         let session = URLSession(configuration: .ephemeral, delegate: TVCertificateDelegate(host: tv.host), delegateQueue: nil)
         self.session = session
         let socket = session.webSocketTask(with: url)
@@ -165,7 +194,7 @@ enum ConnectionState: Equatable {
                         self.poweredOff = false
                         self.state = .connected
                         self.retryDelay = 2
-                        self.startHeartbeat(socket: socket, id: id)
+                        self.startHeartbeat(socket: socket, host: tv.host, id: id)
                         self.findApps(tv: tv, id: id)
                         Task { await self.refreshVolume() }
                     case "ms.channel.unauthorized", "ms.channel.timeOut":
@@ -191,12 +220,16 @@ enum ConnectionState: Equatable {
         }
     }
 
-    private func startHeartbeat(socket: URLSessionWebSocketTask, id: UUID) {
+    private func startHeartbeat(socket: URLSessionWebSocketTask, host: String, id: UUID) {
         heartbeat?.cancel()
+        let inspect = self.inspect
         heartbeat = Task { [weak self] in
             while !Task.isCancelled {
                 do {
                     try await Task.sleep(nanoseconds: 5_000_000_000)
+                    let status = await inspect(host)
+                    guard let self, self.generation == id, !Task.isCancelled else { return }
+                    if status?.inStandby == true { self.markPoweredOff(); return }
                     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                         socket.sendPing { error in
                             if let error { continuation.resume(throwing: error) }
@@ -229,6 +262,7 @@ enum ConnectionState: Equatable {
     private func stopConnection() {
         generation = UUID()
         receiver?.cancel(); receiver = nil
+        powerCheck?.cancel(); powerCheck = nil
         heartbeat?.cancel(); heartbeat = nil
         deadline?.cancel(); deadline = nil
         retry?.cancel(); retry = nil
@@ -236,6 +270,7 @@ enum ConnectionState: Equatable {
         textTask?.cancel(); textTask = nil
         volumeTask?.cancel(); volumeTask = nil
         imeActive = false
+        volume = nil; muted = false
         sentText = ""; textAnnounced = false
         socket?.cancel(with: .goingAway, reason: nil); socket = nil
         session?.invalidateAndCancel(); session = nil
@@ -253,10 +288,7 @@ enum ConnectionState: Equatable {
                     await refreshVolume()
                 }
                 if key == .powerOff, generation == id {
-                    paused = true
-                    stopConnection()
-                    poweredOff = true
-                    state = .offline("The TV is off. Press power to turn it back on.")
+                    markPoweredOff()
                 }
             } catch { failed("The command could not reach the TV.", id: id) }
         }
@@ -437,11 +469,18 @@ enum ConnectionState: Equatable {
         if let data = try? JSONEncoder().encode(customApps) { UserDefaults.standard.set(data, forKey: "customApps") }
     }
 
+    private func markPoweredOff() {
+        paused = true
+        stopConnection()
+        poweredOff = true
+        state = .offline("The TV is off. Press power to turn it back on.")
+    }
+
     func wake() {
         guard let mac = television?.mac else { notice = "Connect to the TV once to learn its MAC address."; return }
         do {
             try TVDiscovery.wake(mac: mac)
-            connect()
+            connect(waking: true)
             notice = "Wake request sent. The TV may take a few seconds to respond."
         } catch { notice = error.localizedDescription }
     }

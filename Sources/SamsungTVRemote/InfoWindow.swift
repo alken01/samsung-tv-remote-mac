@@ -15,31 +15,39 @@ struct InfoWindow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.l) {
-            HStack(spacing: Design.Space.m) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable().frame(width: 56, height: 56)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Samsung TV Remote").font(.system(size: 17, weight: .semibold))
-                    Text("Version \(version)").font(Design.Font.detail).foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-                Button("Open Remote", action: openRemote).glassControl(prominent: true)
-            }
-
-            VStack(alignment: .leading, spacing: Design.Space.s) {
-                SectionLabel(title: "Television")
-                ListCard {
-                    if let tv = remote.television {
-                        RowLabel(symbol: "tv", title: tv.name, detail: "\(tv.model) · \(tv.host)") { status }
-                    } else {
-                        RowLabel(symbol: "tv", title: "No TV yet", detail: "Open the remote to find one") { EmptyView() }
+            VStack(alignment: .leading, spacing: Design.Space.m) {
+                HStack(spacing: Design.Space.m) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable().frame(width: 40, height: 40)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Samsung TV Remote").font(Design.Font.title).lineLimit(1)
+                        Text("Version \(version)").font(Design.Font.detail).foregroundStyle(.secondary)
                     }
+                    Spacer(minLength: 0)
+                    Button("Open", action: openRemote).glassControl(prominent: true).help("Open remote")
+                }
+                RowDivider()
+                if let tv = remote.television {
+                    HStack {
+                        Text(tv.name).font(Design.Font.body).lineLimit(1)
+                        Spacer(minLength: Design.Space.s)
+                        status
+                    }
+                    Text("\(tv.model) · \(tv.host)")
+                        .font(Design.Font.detail.monospacedDigit()).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                } else {
+                    Text("Open the remote to choose a TV.")
+                        .font(Design.Font.detail).foregroundStyle(.secondary)
                 }
             }
+            .padding(Design.Space.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
 
             VStack(alignment: .leading, spacing: Design.Space.s) {
-                SectionLabel(title: "Keys while the remote is open")
+                SectionLabel(title: "Shortcuts")
                 ListCard {
                     shortcut("arrow.up.and.down.and.arrow.left.and.right", "Move", "← ↑ → ↓")
                     RowDivider()
@@ -71,16 +79,13 @@ struct InfoWindow: View {
             }
 
             HStack(spacing: Design.Space.s) {
-                Image(systemName: "appletvremote.gen1").foregroundStyle(.secondary)
-                Text("The remote lives in the menu bar. Click its icon to open it.")
-                    .font(Design.Font.detail).foregroundStyle(.secondary)
                 Spacer(minLength: 0)
                 Button("Quit") { NSApplication.shared.terminate(nil) }.glassControl()
             }
             .padding(.leading, Design.Space.xs)
         }
-        .padding(Design.Space.l + Design.Space.s)
-        .frame(width: 440)
+        .padding(Design.Space.l)
+        .frame(width: 360)
         .fixedSize()
         .onChange(of: login) { _, value in
             do {

@@ -6,6 +6,9 @@ struct Television: Codable, Identifiable, Equatable {
     var model: String
     var host: String
     var mac: String?
+    var powerState: String? = nil
+
+    var inStandby: Bool { powerState?.lowercased() == "standby" }
 
     static func decode(_ data: Data, host: String) throws -> Television {
         struct Response: Decodable {
@@ -16,6 +19,7 @@ struct Television: Codable, Identifiable, Equatable {
                 var wifiMac: String?
                 var type: String?
                 var OS: String?
+                var PowerState: String?
             }
             var device: Device
         }
@@ -25,7 +29,7 @@ struct Television: Codable, Identifiable, Equatable {
         }
         return Television(id: device.id ?? device.wifiMac ?? host,
                           name: (device.name ?? "Samsung TV").replacingOccurrences(of: "&quot;", with: "\""),
-                          model: device.modelName ?? "Samsung Tizen", host: host, mac: device.wifiMac)
+                          model: device.modelName ?? "Samsung Tizen", host: host, mac: device.wifiMac, powerState: device.PowerState)
     }
 }
 
