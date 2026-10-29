@@ -45,11 +45,19 @@ struct InfoWindow: View {
                     RowDivider()
                     shortcut("return", "OK", "Return")
                     RowDivider()
-                    shortcut("arrow.uturn.backward", "Back", "Esc  or  Delete")
+                    shortcut("arrow.uturn.backward", "Back", "Backspace")
+                    RowDivider()
+                    shortcut("playpause", "Play / pause", "Space")
                     RowDivider()
                     shortcut("speaker.wave.2", "Volume", "+  −")
                     RowDivider()
-                    shortcut("keyboard", "Type on TV", "Any letter")
+                    shortcut("house", "Home", "H")
+                    RowDivider()
+                    shortcut("slider.horizontal.3", "TV menu", "M")
+                    RowDivider()
+                    shortcut("rectangle.on.rectangle", "Inputs", "I")
+                    RowDivider()
+                    shortcut("speaker.slash", "Mute", "U")
                 }
             }
 

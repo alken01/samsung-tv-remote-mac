@@ -2,7 +2,6 @@ import SwiftUI
 
 struct DevicesView: View {
     @ObservedObject var remote: Remote
-    @FocusState private var editing: Bool
     @NativeState private var address = ""
     @NativeState private var adding = false
 
@@ -27,7 +26,6 @@ struct DevicesView: View {
                     TextField("192.168.1.10", text: $address)
                         .textFieldStyle(.plain)
                         .font(.system(size: 13).monospacedDigit())
-                        .focused($editing)
                         .onSubmit(add)
                         .padding(.horizontal, Design.Space.l)
                         .frame(height: Design.Control.regular)

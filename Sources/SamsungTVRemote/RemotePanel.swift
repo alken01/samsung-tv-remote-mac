@@ -13,7 +13,7 @@ struct RemotePanel: View {
         if remote.showSettings { return .settings }
         if remote.television == nil || remote.showDevices { return .devices }
         if remote.showApps { return .apps }
-        return remote.showKeyboard ? .keyboard : .remote
+        return remote.imeActive && remote.showKeyboard ? .keyboard : .remote
     }
 
     var body: some View {
@@ -44,9 +44,10 @@ struct RemotePanel: View {
             if screen == .keyboard { typing = true; KeyboardView.moveCaretToEnd() }
             else if screen == .remote { panelFocused = true }
         }
-        .onChange(of: remote.showKeyboard) { _, open in
-            typing = open
-            if open { KeyboardView.moveCaretToEnd() }
+        .onChange(of: screen) { _, screen in
+            typing = screen == .keyboard
+            panelFocused = screen == .remote
+            if typing { KeyboardView.moveCaretToEnd() }
         }
         .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: screen)
         .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: remote.notice)
@@ -151,9 +152,9 @@ struct RemotePanel: View {
 
     // MARK: Keyboard
 
-    private func openKeyboard(seed: String = "") {
-        remote.text += seed
-        if remote.showKeyboard { typing = true; KeyboardView.moveCaretToEnd() } else { remote.showKeyboard = true }
+    private func openKeyboard() {
+        guard remote.imeActive else { return }
+        remote.showKeyboard = true
     }
 
     private func closeKeyboard() {
@@ -170,17 +171,18 @@ struct RemotePanel: View {
         case .leftArrow: remote.send(.left)
         case .rightArrow: remote.send(.right)
         case .return: remote.send(.select)
-        case .escape, .delete: remote.send(.back)
+        case .space:
+            if event.phase == .down { remote.togglePlayback() }
+        case .delete, KeyEquivalent("\u{7f}"): remote.send(.back)
         default:
-            switch event.characters {
+            switch event.characters.lowercased() {
             case "+", "=": remote.send(.volumeUp)
             case "-": remote.send(.volumeDown)
-            default:
-                // Any printable character starts typing on the TV.
-                guard event.phase == .down, let scalar = event.characters.unicodeScalars.first,
-                      !CharacterSet.controlCharacters.contains(scalar),
-                      !(0xF700...0xF8FF).contains(scalar.value) else { return .ignored }
-                openKeyboard(seed: event.characters)
+            case "h": if event.phase == .down { remote.send(.home) }
+            case "m": if event.phase == .down { remote.send(.settings) }
+            case "i": if event.phase == .down { remote.send(.source) }
+            case "u": if event.phase == .down { remote.send(.mute) }
+            default: return .ignored
             }
         }
         return .handled

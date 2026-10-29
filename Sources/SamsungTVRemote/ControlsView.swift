@@ -8,71 +8,69 @@ struct ControlsView: View {
         VStack(spacing: Design.Space.l) {
             if let detail = remote.detail { banner(detail) }
 
-            Group {
-                VStack(spacing: Design.Space.m) {
-                    ZStack {
-                        DirectionPad(remote: remote)
-                        VStack {
-                            HStack {
-                                // Power stays usable while disconnected: it wakes the TV instead.
-                                GlassIconButton(symbol: "power", help: remote.connected ? "Turn TV off" : "Turn TV on",
-                                                size: Design.Control.regular, color: remote.connected ? .red : .green) {
-                                    if remote.connected { remote.send(.powerOff) } else { remote.wake() }
-                                }
-                                .disabled(remote.busy)
-                                Spacer()
-                                GlassIconButton(symbol: "rectangle.on.rectangle", help: "Inputs", size: Design.Control.regular) { remote.send(.source) }
-                                    .disabled(!remote.connected)
+            VStack(spacing: Design.Space.m) {
+                ZStack {
+                    DirectionPad(remote: remote)
+                    VStack {
+                        HStack {
+                            // Power stays usable while disconnected: it wakes the TV instead.
+                            GlassIconButton(symbol: "power", help: remote.connected ? "Turn TV off" : "Turn TV on",
+                                            size: Design.Control.regular, color: remote.connected ? .red : .green) {
+                                if remote.connected { remote.send(.powerOff) } else { remote.wake() }
                             }
+                            .disabled(remote.busy)
                             Spacer()
-                            HStack {
-                                GlassIconButton(symbol: "arrow.uturn.backward", help: "Back · Esc", size: Design.Control.regular) { remote.send(.back) }
-                                Spacer()
-                                GlassIconButton(symbol: "house", help: "Home", size: Design.Control.regular) { remote.send(.home) }
-                            }
-                            .disabled(!remote.connected)
+                            GlassIconButton(symbol: "rectangle.on.rectangle", help: "Inputs · I", size: Design.Control.regular) { remote.send(.source) }
+                                .disabled(!remote.connected)
                         }
+                        Spacer()
+                        HStack {
+                            GlassIconButton(symbol: "arrow.uturn.backward", help: "Back · Backspace", size: Design.Control.regular) { remote.send(.back) }
+                            Spacer()
+                            GlassIconButton(symbol: "house", help: "Home · H", size: Design.Control.regular) { remote.send(.home) }
+                        }
+                        .disabled(!remote.connected)
                     }
-                    .frame(height: DirectionPad.size)
-
-                    VStack(spacing: Design.Space.m) {
-                        if let volume = remote.volume { VolumeSlider(remote: remote, level: volume) }
-
-                        HStack(spacing: Design.Space.s) {
-                            if remote.volume == nil {
-                                // Without the renderer's absolute volume, fall back to the volume keys.
-                                SegmentedGlass {
-                                    segment(.volumeDown, "minus", "Volume down · −")
-                                    segment(.mute, "speaker.slash.fill", "Mute")
-                                    segment(.volumeUp, "plus", "Volume up · +")
-                                }
-                            }
-                            SegmentedGlass { playback }
-                            GlassIconButton(symbol: "slider.horizontal.3", help: "TV menu", size: Design.Control.large) {
-                                remote.send(.settings)
-                            }
-                        }
-
-                        // Only offered while the TV has a text field open; typing any letter still opens the keyboard.
-                        if remote.imeActive {
-                            Button(action: openKeyboard) {
-                                HStack(spacing: Design.Space.s) {
-                                    Image(systemName: "keyboard").font(.system(size: 14, weight: .semibold))
-                                    Text("Type on TV").font(Design.Font.button)
-                                }
-                                .modifier(EnabledFade())
-                                .frame(maxWidth: .infinity)
-                                .frame(height: Design.Control.large)
-                                .glassSurface(Capsule(), interactive: true)
-                            }
-                            .buttonStyle(PressStyle(highlight: false))
-                            .help("The TV has a text field open")
-                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                        }
-                    }
-                    .animation(.smooth(duration: 0.25), value: remote.imeActive)
-                    .disabled(!remote.connected)
                 }
+                .frame(height: DirectionPad.size)
+
+                VStack(spacing: Design.Space.m) {
+                    if let volume = remote.volume { VolumeSlider(remote: remote, level: volume) }
+
+                    HStack(spacing: Design.Space.s) {
+                        if remote.volume == nil {
+                            // Without the renderer's absolute volume, fall back to the volume keys.
+                            SegmentedGlass {
+                                segment(.volumeDown, "minus", "Volume down · −")
+                                segment(.mute, "speaker.slash.fill", "Mute · U")
+                                segment(.volumeUp, "plus", "Volume up · +")
+                            }
+                        }
+                        SegmentedGlass { playback }
+                        GlassIconButton(symbol: "slider.horizontal.3", help: "TV menu · M", size: Design.Control.large) {
+                            remote.send(.settings)
+                        }
+                    }
+
+                    // Offered while the TV reports an open text field.
+                    if remote.imeActive {
+                        Button(action: openKeyboard) {
+                            HStack(spacing: Design.Space.s) {
+                                Image(systemName: "keyboard").font(.system(size: 14, weight: .semibold))
+                                Text("Type on TV").font(Design.Font.button)
+                            }
+                            .modifier(EnabledFade())
+                            .frame(maxWidth: .infinity)
+                            .frame(height: Design.Control.large)
+                            .glassSurface(Capsule(), interactive: true)
+                        }
+                        .buttonStyle(PressStyle(highlight: false))
+                        .help("The TV has a text field open")
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    }
+                }
+                .animation(.smooth(duration: 0.25), value: remote.imeActive)
+                .disabled(!remote.connected)
             }
 
             if !remote.available.isEmpty { apps }
@@ -84,15 +82,7 @@ struct ControlsView: View {
 
     @ViewBuilder private var playback: some View {
         segment(.rewind, "backward.fill", "Rewind")
-        Button { remote.togglePlayback() } label: {
-            Image(systemName: "playpause.fill")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .frame(height: Design.Control.small)
-        }
-        .buttonStyle(PressStyle(shape: AnyShape(Capsule())))
-        .help("Play or pause")
-        .accessibilityLabel("Play or pause")
+        segment("playpause.fill", "Play or pause · Space") { remote.togglePlayback() }
         segment(.forward, "forward.fill", "Fast forward")
     }
 
@@ -103,7 +93,11 @@ struct ControlsView: View {
     }
 
     private func segment(_ key: TVKey, _ symbol: String, _ label: String) -> some View {
-        Button { remote.send(key) } label: {
+        segment(symbol, label) { remote.send(key) }
+    }
+
+    private func segment(_ symbol: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 12, weight: .semibold))
                 .frame(maxWidth: .infinity)
@@ -152,24 +146,22 @@ struct ControlsView: View {
                 .help("Choose favourite apps")
             }
             if !remote.apps.isEmpty {
-                Group {
-                    // Icons only, on one glass shelf; the name shows on hover.
-                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(36), spacing: 14), count: appColumns), spacing: 14) {
-                        ForEach(remote.apps) { app in
-                            Button { remote.launch(app) } label: {
-                                AppIcon(app: app, size: 36)
-                                    .modifier(EnabledFade())
-                            }
-                            .buttonStyle(PressStyle(highlight: false))
-                            .disabled(!remote.connected)
-                            .help(app.name)
-                            .accessibilityLabel("Open \(app.name)")
+                // Icons only, on one glass shelf; the name shows on hover.
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(36), spacing: 14), count: appColumns), spacing: 14) {
+                    ForEach(remote.apps) { app in
+                        Button { remote.launch(app) } label: {
+                            AppIcon(app: app, size: 36)
+                                .modifier(EnabledFade())
                         }
+                        .buttonStyle(PressStyle(highlight: false))
+                        .disabled(!remote.connected)
+                        .help(app.name)
+                        .accessibilityLabel("Open \(app.name)")
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Design.Space.l)
-                    .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Design.Space.l)
+                .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
             }
         }
     }
@@ -195,7 +187,7 @@ private struct VolumeSlider: View {
                     .frame(width: Design.Control.small, height: Design.Control.small)
             }
             .buttonStyle(PressStyle())
-            .help(remote.muted ? "Unmute" : "Mute")
+            .help(remote.muted ? "Unmute · U" : "Mute · U")
             .accessibilityLabel(remote.muted ? "Unmute" : "Mute")
 
             Slider(value: Binding(get: { Double(level) }, set: { remote.setVolume(Int($0.rounded())) }),

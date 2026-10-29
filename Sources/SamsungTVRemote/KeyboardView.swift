@@ -16,7 +16,7 @@ struct KeyboardView: View {
                         .frame(height: 26)
                 }
                 .buttonStyle(PressStyle(shape: AnyShape(Capsule())))
-                .help("Back to remote · Esc")
+                .help("Back to remote")
                 Spacer()
                 liveBadge
             }
@@ -30,7 +30,6 @@ struct KeyboardView: View {
                     .font(.system(size: 15))
                     .focused(focus)
                     .onSubmit(submit)
-                    .onKeyPress(.escape) { close(); return .handled }
                     .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow], phases: [.down, .repeat]) { navigate($0.key) }
                 if !remote.text.isEmpty {
                     Button { remote.text = "" } label: {
@@ -60,7 +59,7 @@ struct KeyboardView: View {
             .help("Confirm on the TV · Return")
 
             Text(remote.imeActive
-                 ? "Return confirms · Esc goes back"
+                 ? "Return confirms"
                  : "Select a text field on the TV to start")
                 .font(Design.Font.detail)
                 .foregroundStyle(.secondary)
@@ -73,7 +72,7 @@ struct KeyboardView: View {
         }
     }
 
-    // Focusing a field selects its contents; put the caret after any seeded character instead.
+    // Focusing a field selects its contents; keep the caret at the end instead.
     static func moveCaretToEnd() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             guard let editor = NSApp.keyWindow?.firstResponder as? NSTextView else { return }

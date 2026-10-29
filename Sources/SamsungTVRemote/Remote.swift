@@ -114,7 +114,6 @@ enum ConnectionState: Equatable {
     }
 
     func select(_ tv: Television) {
-        stopConnection()
         television = tv
         available = []
         do { try storage.saveTV(tv) } catch { notice = "Could not save TV: \(error.localizedDescription)" }
@@ -442,7 +441,6 @@ enum ConnectionState: Equatable {
         guard let mac = television?.mac else { notice = "Connect to the TV once to learn its MAC address."; return }
         do {
             try TVDiscovery.wake(mac: mac)
-            notice = "Wake request sent. Enable Power On with Mobile on the TV if it stays asleep."
             connect()
             notice = "Wake request sent. The TV may take a few seconds to respond."
         } catch { notice = error.localizedDescription }

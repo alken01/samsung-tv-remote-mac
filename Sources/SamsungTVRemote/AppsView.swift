@@ -10,10 +10,11 @@ struct AppsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Space.l) {
             if remote.available.isEmpty {
-                GlassCard {
-                    Text(remote.connected ? "Looking for apps on your TV…" : "Connect to your TV to see its apps.")
-                        .font(Design.Font.body).foregroundStyle(.secondary)
-                }
+                Text(remote.connected ? "Looking for apps on your TV…" : "Connect to your TV to see its apps.")
+                    .font(Design.Font.body).foregroundStyle(.secondary)
+                    .padding(Design.Space.l)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Design.Space.l) {

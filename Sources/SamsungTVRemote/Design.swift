@@ -62,15 +62,14 @@ struct ListCard<Content: View>: View {
 
 /// Hairline between rows of a `ListCard`, aligned with the row text.
 struct RowDivider: View {
-    var inset: CGFloat = Design.Space.m - Design.Space.xs
     var body: some View {
-        Rectangle().fill(.primary.opacity(0.08)).frame(height: 0.5).padding(.horizontal, inset)
+        Rectangle().fill(.primary.opacity(0.08)).frame(height: 0.5).padding(.horizontal, Design.Space.s)
     }
 }
 
-/// Row content: optional plain symbol, title, optional detail line, trailing accessory.
+/// Row content: symbol, title, optional detail line, trailing accessory.
 struct RowLabel<Trailing: View>: View {
-    var symbol: String? = nil
+    let symbol: String
     let title: String
     var detail: String? = nil
     var tint: Color? = nil
@@ -78,12 +77,10 @@ struct RowLabel<Trailing: View>: View {
 
     var body: some View {
         HStack(spacing: Design.Space.m) {
-            if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(tint.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
-                    .frame(width: 20)
-            }
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(tint.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
+                .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(Design.Font.body)
@@ -103,14 +100,14 @@ struct RowLabel<Trailing: View>: View {
 }
 
 extension RowLabel where Trailing == EmptyView {
-    init(symbol: String? = nil, title: String, detail: String? = nil, tint: Color? = nil) {
+    init(symbol: String, title: String, detail: String? = nil, tint: Color? = nil) {
         self.init(symbol: symbol, title: title, detail: detail, tint: tint) { EmptyView() }
     }
 }
 
 /// A pressable row inside a `ListCard`, with a hover wash matching the card's corners.
 struct RowButton<Trailing: View>: View {
-    var symbol: String? = nil
+    let symbol: String
     let title: String
     var detail: String? = nil
     var tint: Color? = nil
@@ -127,7 +124,7 @@ struct RowButton<Trailing: View>: View {
 }
 
 extension RowButton where Trailing == EmptyView {
-    init(symbol: String? = nil, title: String, detail: String? = nil, tint: Color? = nil, action: @escaping () -> Void) {
+    init(symbol: String, title: String, detail: String? = nil, tint: Color? = nil, action: @escaping () -> Void) {
         self.init(symbol: symbol, title: title, detail: detail, tint: tint, action: action) { EmptyView() }
     }
 }

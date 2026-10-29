@@ -34,12 +34,11 @@ enum RemoteError: LocalizedError {
     var errorDescription: String? { if case .message(let text) = self { return text }; return nil }
 }
 
-enum TVKey: String, CaseIterable {
+enum TVKey: String {
     case up = "KEY_UP", down = "KEY_DOWN", left = "KEY_LEFT", right = "KEY_RIGHT", select = "KEY_ENTER"
     case back = "KEY_RETURN", home = "KEY_HOME", settings = "KEY_MENU", source = "KEY_SOURCE"
     case volumeUp = "KEY_VOLUP", volumeDown = "KEY_VOLDOWN", mute = "KEY_MUTE"
     case play = "KEY_PLAY", pause = "KEY_PAUSE", rewind = "KEY_REWIND", forward = "KEY_FF"
-    case channelUp = "KEY_CHUP", channelDown = "KEY_CHDOWN"
     // Recent models ignore KEY_POWEROFF over the network; KEY_POWER turns them off.
     case powerOff = "KEY_POWER"
 }

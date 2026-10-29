@@ -133,15 +133,3 @@ struct GlassIconButton: View {
         .accessibilityLabel(help)
     }
 }
-
-/// Grouped content on a rounded glass card.
-struct GlassCard<Content: View>: View {
-    var padding: CGFloat = Design.Space.l
-    @ViewBuilder var content: () -> Content
-    var body: some View {
-        VStack(alignment: .leading, spacing: Design.Space.m, content: content)
-            .padding(padding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .glassSurface(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
-    }
-}
