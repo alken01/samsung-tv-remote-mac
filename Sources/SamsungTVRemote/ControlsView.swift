@@ -117,7 +117,7 @@ struct ControlsView: View {
                 .symbolEffect(.pulse, isActive: remote.busy)
                 .frame(width: 18)
             Text(detail)
-                .font(Design.Font.detail)
+                .font(Design.Font.notice)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -138,7 +138,7 @@ struct ControlsView: View {
                 Spacer()
                 Button { remote.showApps = true } label: {
                     Text(remote.apps.isEmpty ? "Choose apps" : "Edit")
-                        .font(.caption.weight(.semibold))
+                        .font(Design.Font.label)
                         .padding(.horizontal, 8).frame(height: 22)
                 }
                 .buttonStyle(PressStyle(shape: AnyShape(Capsule())))

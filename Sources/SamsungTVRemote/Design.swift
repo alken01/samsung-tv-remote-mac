@@ -33,8 +33,11 @@ enum Design {
         static let title = SwiftUI.Font.system(size: 15, weight: .semibold)
         static let body = SwiftUI.Font.system(size: 13, weight: .medium)
         static let button = SwiftUI.Font.system(size: 13, weight: .semibold)
-        static let label = SwiftUI.Font.caption.weight(.semibold)
-        static let detail = SwiftUI.Font.caption
+        /// Explicit sizes: `.caption` is 10 pt on macOS, which read too small on glass.
+        static let label = SwiftUI.Font.system(size: 11, weight: .semibold)
+        static let detail = SwiftUI.Font.system(size: 11)
+        /// Message text in banners.
+        static let notice = SwiftUI.Font.system(size: 12)
     }
 }
 
